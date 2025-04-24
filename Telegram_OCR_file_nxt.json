@@ -1,0 +1,403 @@
+{
+  "name": "Telegram OCR file nxt",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "68916c7f-6610-448e-bf1e-0d5da9111bb8",
+      "name": "Telegram Trigger",
+      "webhookId": "36659d51-c43a-4c08-a0fe-e4c1498fdb20",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{$json[\"message\"][\"document\"][\"file_id\"]}}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "28bea367-c56f-4569-a80f-3957e27448c3",
+      "name": "Telegram",
+      "webhookId": "4bdf86b5-391e-4709-bca2-f8eab88b13a0",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K81937360188957"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "language",
+              "value": "eng"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "6e0e2746-fb95-476d-be96-2faa44b34d27",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "={{$json[\"url\"]}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "e6ac02bf-7dcc-4f91-ab8a-9233a5e0d061",
+      "name": "download"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"mistralai/mistral-7b-instruct:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Convert this OCR text into a clean CSV format. Only return the CSV content without any explanation.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"\"\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "51a3c05b-dd5e-4aa1-a643-76090718a42f",
+      "name": "Connect to Open Router LLMs"
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2280,
+        0
+      ],
+      "id": "0d16de55-71cf-4cbb-91a8-03b80c6d62f9",
+      "name": "Telegram1",
+      "webhookId": "254d7702-d4d3-4053-a476-8ffcc4ba7f43",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3371c430-b105-43cd-a575-d1b8c0fda01f",
+              "name": "url",
+              "value": "={{$json[\"result\"][\"file_path\"] ? `https://api.telegram.org/file/bot7606197924:AAFuEqP37ZgIU9ucvJ-vZgNjQyGYe5OSuUA/` + $json[\"result\"][\"file_path\"] : ''}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "id": "085e0883-0ec2-4a28-84fe-16d1762f6d28",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lines = $json.choices[0].message.content.split('\\n');\nconst items = [];\n\nfor (const line of lines) {\n  if (line.trim() && !line.toLowerCase().startsWith('product')) { // skip header\n    items.push({\n      json: {\n        line: line.trim()\n      }\n    });\n  }\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "1c5a486c-db48-4c0a-8ab0-9fc64e484ebb",
+      "name": "Split description"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={   \"inputs\": \"{{ $json.line }}\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "fbac4f0b-822a-43a7-9b7e-d0384651d7c6",
+      "name": "embed each line"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://5bd12240-56b8-4665-b868-645561a547a6.us-west-1-0.aws.cloud.qdrant.io/collections/catalog_items/points/search",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"api-key\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.4TF20TCkm0E3TpdXsIF2zAg8mEpCGKmaA_t7y5BtcgY\"\n}\n",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"vector\": {{ $node[\"embed each line\"].json }},\n  \"top\": 1,\n  \"with_payload\": true\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        0
+      ],
+      "id": "302517ca-6e56-4e42-a8f9-d2afe121452c",
+      "name": "Qdrant /search"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b4b73690-f7b6-4b42-ae9a-98891da0433c",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2040,
+        0
+      ],
+      "id": "b91c19bc-db9e-4e86-9c6c-c945eb4c7e9d",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "download": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Connect to Open Router LLMs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connect to Open Router LLMs": {
+      "main": [
+        [
+          {
+            "node": "Split description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split description": {
+      "main": [
+        [
+          {
+            "node": "embed each line",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "embed each line": {
+      "main": [
+        [
+          {
+            "node": "Qdrant /search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant /search": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "48404ec8-7dcd-4ffb-a8f5-a6d38a720ba1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21d271b6809ab37e8c26828d6c0bdf3d1bf7e5af6469e8f494b02c6dea7da31d"
+  },
+  "id": "ybvvhxOYkqC8wiqX",
+  "tags": []
+}

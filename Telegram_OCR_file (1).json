@@ -1,0 +1,308 @@
+{
+  "name": "Telegram OCR file",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "68916c7f-6610-448e-bf1e-0d5da9111bb8",
+      "name": "Telegram Trigger",
+      "webhookId": "36659d51-c43a-4c08-a0fe-e4c1498fdb20",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{$json[\"message\"][\"document\"][\"file_id\"]}}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "28bea367-c56f-4569-a80f-3957e27448c3",
+      "name": "Telegram",
+      "webhookId": "4bdf86b5-391e-4709-bca2-f8eab88b13a0",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "helloworld"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "filetype",
+              "value": "pdf"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "apikey",
+              "value": "helloworld"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "6e0e2746-fb95-476d-be96-2faa44b34d27",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "https://api.telegram.org/file/bot7606197924:AAFuEqP37ZgIU9ucvJ-vZgNjQyGYe5OSuUA/documents/file_2.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "file.pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "e6ac02bf-7dcc-4f91-ab8a-9233a5e0d061",
+      "name": "download"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"openai/gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a product matching assistant. Given an item from an RFQ and a product catalog, return the best matching product or say \\\"not found\\\".\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"RFQ Item: Stainless Steel Valve 1/2 inch\\n\\nCatalog:\\n1. Stainless Steel Valve - 1/2 inch industrial valve, stainless steel\\n2. Rubber Gasket - Flexible rubber sealing ring\\n3. Brass Pipe - Male threaded connector, brass\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "51a3c05b-dd5e-4aa1-a643-76090718a42f",
+      "name": "Connect to Open Router LLMs"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"matches\": [\n    {\n      \"rfq_item\": \"Stainless Steel Valve 1/2 inch\",\n      \"match\": \"Stainless Steel Valve - 1/2 inch industrial valve, stainless steel\"\n    },\n    {\n      \"rfq_item\": \"Rubber Seal\",\n      \"match\": \"Rubber Gasket - Flexible rubber sealing ring\"\n    },\n    {\n      \"rfq_item\": \"Brass Connector\",\n      \"match\": \"not found\"\n    }\n  ]\n}\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "db7ba1af-8879-4ab7-b752-87324bb43430",
+      "name": "Store Matches"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "matches",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        0
+      ],
+      "id": "31baed58-c0fa-4520-927d-4fc13ee4fcc9",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1460,
+        0
+      ],
+      "id": "928c1d77-0710-4f46-b29f-42f935809ffe",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "0d16de55-71cf-4cbb-91a8-03b80c6d62f9",
+      "name": "Telegram1",
+      "webhookId": "254d7702-d4d3-4053-a476-8ffcc4ba7f43",
+      "credentials": {
+        "telegramApi": {
+          "id": "YJ8U0SCI9bKCpFdK",
+          "name": "Ugene_pdf"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "download": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Connect to Open Router LLMs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connect to Open Router LLMs": {
+      "main": [
+        [
+          {
+            "node": "Store Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Matches": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c745db2a-02b9-48bc-b1f4-b17233dd8dc3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21d271b6809ab37e8c26828d6c0bdf3d1bf7e5af6469e8f494b02c6dea7da31d"
+  },
+  "id": "ybvvhxOYkqC8wiqX",
+  "tags": []
+}
