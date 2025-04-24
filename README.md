@@ -89,11 +89,6 @@ Problem: Needed the process to be fully automated and user-friendly for non-tech
 
 Solution: Built the entire workflow to be triggered from Telegram, where users can send a PDF and receive back a CSV with matched catalog items without interacting with any other system
 
-## 🎁 Bonus Ideas (Optional/Stretch Goals)
-- Use Supabase for storing the product catalog as a vector database
-- Add language translation (Hebrew RFQ to English)
-- Enable “chat with the invoice” LLM flow
-- Add webhook to log RFQ history to Google Sheets
 
 ## 📤 Submission
 
